@@ -1,0 +1,94 @@
+@import "tailwindcss";
+
+:root {
+  --color-primary: #111827;          /* from 17 24 39 */
+  --color-secondary: #6B7280;          /* from 107 114 128 */
+  --color-success: #10B981;            /* from 16 185 129 */
+  --color-error: #EF4444;              /* from 239 68 68 */
+  --color-warning: #F59E0B;            /* from 245 158 11 */
+  --color-info: #3B82F6;               /* from 59 130 246 */
+  --color-background: #FFFFFF;         /* from 255 255 255 */
+  --color-foreground: #111827;         /* from 17 24 39 */
+  --color-muted: #6B7280;              /* from 107 114 128 */
+  --color-muted-foreground: #9CA3AF;    /* from 156 163 175 */
+  --color-border: #E5E7EB;             /* from 229 231 235 */
+  --color-input: #FFFFFF;              /* from 255 255 255 */
+}
+
+body {
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  color: var(--color-foreground);
+  background-color: var(--color-background);
+}
+
+.input {
+  @apply px-4 py-2 border border-gray-200 rounded-sm focus:outline-none focus:ring-1 focus:ring-gray-300 focus:border-gray-300;
+}
+
+.btn {
+  @apply px-4 py-2 rounded-sm transition-colors;
+}
+
+.btn-primary {
+  @apply bg-gray-900 text-white hover:bg-gray-800;
+}
+
+.btn-outline {
+  @apply border border-gray-200 hover:bg-gray-50;
+}
+
+.card {
+  @apply bg-white rounded-md shadow-sm;
+}
+
+.text-muted {
+  @apply text-gray-500;
+}
+
+/* Add this to your CSS file to hide scrollbars */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+/* Custom animation for toast progress bar */
+@keyframes shrink {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+.animate-shrink {
+  animation-name: shrink;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+/* Toast animations */
+.toast-enter {
+  transform: translateY(100%);
+  opacity: 0;
+}
+
+.toast-enter-active {
+  transform: translateY(0);
+  opacity: 1;
+  transition: opacity 300ms, transform 300ms;
+}
+
+.toast-exit {
+  opacity: 1;
+}
+
+.toast-exit-active {
+  opacity: 0;
+  transition: opacity 300ms;
+}
+

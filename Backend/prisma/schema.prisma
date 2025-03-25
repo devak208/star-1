@@ -1,0 +1,150 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+}
+
+model Banner {
+  id        Int      @id @default(autoincrement())
+  title     String
+  link      String?
+  image     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Category {
+  id        Int       @id @default(autoincrement())
+  name      String
+  image     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[]
+}
+
+model Product {
+  id          Int         @id @default(autoincrement())
+  name        String
+  price       Float
+  description String
+  stock       Int
+  weight      Float       @default(0)
+  qty         Int         @default(0)
+  image       String[]    @default([])
+  categoryId  Int
+  category    Category    @relation(fields: [categoryId], references: [id])
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  cartItems   CartItem[]
+  orderItems  OrderItem[]
+}
+
+model User {
+  id            String    @id @default(uuid())
+  name          String
+  email         String    @unique
+  password      String
+  phoneNumber String?
+  role          Role      @default(USER)
+  provider      Provider  @default(CREDENTIALS)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  addresses     Address[]
+  orders        Order[]
+  cart          Cart?
+}
+
+model Address {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  fullName    String
+  phone       String
+  address     String
+  city        String
+  state       String
+  zipCode     String
+  country     String
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  orders      Order[]
+}
+
+model Cart {
+  id        String     @id @default(uuid())
+  userId    String     @unique
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  cartId    String
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([cartId, productId])
+}
+
+model Order {
+  id            String        @id @default(uuid())
+  userId        String
+  user          User          @relation(fields: [userId], references: [id])
+  addressId     String
+  address       Address       @relation(fields: [addressId], references: [id])
+  items         OrderItem[]
+  total         Float
+  shippingCost  Float
+  paymentMethod PaymentMethod
+  status        OrderStatus   @default(PENDING)
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model OrderItem {
+  id        String   @id @default(uuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id])
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum PaymentMethod {
+  COD
+  ONLINE
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum Provider {
+  CREDENTIALS
+  GOOGLE
+  FACEBOOK
+}
