@@ -6,6 +6,7 @@ import authService from "../../services/authService"
 import { User, Phone, MapPin, Lock, ShoppingBag, Edit, X, LogOut, RefreshCw } from "lucide-react"
 import { useUser } from "../../../context/UserContext"
 import { toast } from "react-hot-toast"
+import axios from "axios"
 
 export default function Profile() {
   const { user, loading: userLoading, fetchUserProfile, fetchCart, logout } = useUser()
@@ -301,10 +302,49 @@ export default function Profile() {
   )
 }
 
+function ConfirmationDialog({ title, message, onConfirm, onCancel, isOpen }) {
+  if (!isOpen) return null;
+  
+  return (
+    <div className="fixed inset-0   bg-opacity-30 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6 relative">
+        <button 
+          onClick={onCancel}
+          className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
+        >
+          <X size={18} />
+        </button>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
+        <p className="text-sm text-gray-600 mb-4">{message}</p>
+        <div className="flex justify-end space-x-3 mt-5">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PersonalInfoForm({ user, isEditing, onUpdate, onCancel, formData, onChange, loading }) {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [showAddressForm, setShowAddressForm] = useState(false)
+  const { fetchUserProfile } = useUser()
+  const [addressLoading, setAddressLoading] = useState(false)
+  const [isEditingAddress, setIsEditingAddress] = useState(false)
+  const [currentAddressId, setCurrentAddressId] = useState(null)
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
+  const [addressToDelete, setAddressToDelete] = useState(null)
   const [addressFormData, setAddressFormData] = useState({
     fullName: "",
     phone: "",
@@ -338,35 +378,47 @@ function PersonalInfoForm({ user, isEditing, onUpdate, onCancel, formData, onCha
   }
 
   const handleAddressSubmit = async (e) => {
-    e.preventDefault()
-    setError("")
-    setSuccess("")
-
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+    setAddressLoading(true);
+  
     try {
-      const success = await onUpdate({
-        ...formData,
-        addresses: [...(user.addresses || []), addressFormData]
-      })
-      if (success) {
-        setSuccess("Address added successfully!")
-        setShowAddressForm(false)
-        setAddressFormData({
-          fullName: "",
-          phone: "",
-          address: "",
-          city: "",
-          state: "",
-          zipCode: "",
-          country: ""
-        })
+      let response;
+      
+      if (isEditingAddress && currentAddressId) {
+        // Update existing address
+        response = await authService.updateAddress(currentAddressId, addressFormData);
+        setSuccess("Address updated successfully!");
       } else {
-        setError("Failed to add address. Please try again.")
+        // Create new address
+        response = await authService.addAddress(addressFormData);
+        setSuccess("Address added successfully!");
       }
+      
+      console.log('Address response:', response);
+      setShowAddressForm(false);
+      setIsEditingAddress(false);
+      setCurrentAddressId(null);
+      setAddressFormData({
+        fullName: "",
+        phone: "",
+        address: "",
+        city: "",
+        state: "",
+        zipCode: "",
+        country: ""
+      });
+      
+      // Refresh user profile to get updated addresses
+      await fetchUserProfile();
     } catch (err) {
-      console.error("Error adding address:", err)
-      setError("Failed to add address. Please try again.")
+      console.error("Error saving address:", err);
+      setError(err.response?.data?.message || "Failed to save address. Please try again.");
+    } finally {
+      setAddressLoading(false);
     }
-  }
+  };
 
   const handleAddressChange = (e) => {
     const { name, value } = e.target
@@ -376,8 +428,78 @@ function PersonalInfoForm({ user, isEditing, onUpdate, onCancel, formData, onCha
     }))
   }
 
+  const handleEditAddress = (address) => {
+    setAddressFormData({
+      fullName: address.fullName || "",
+      phone: address.phone || "",
+      address: address.address || "",
+      city: address.city || "",
+      state: address.state || "",
+      zipCode: address.zipCode || "",
+      country: address.country || ""
+    });
+    setCurrentAddressId(address.id);
+    setIsEditingAddress(true);
+    setShowAddressForm(true);
+  }
+
+  const confirmDeleteAddress = (addressId) => {
+    setAddressToDelete(addressId);
+    setConfirmDialogOpen(true);
+  }
+
+  const handleDeleteAddress = async () => {
+    if (!addressToDelete) return;
+    
+    setAddressLoading(true);
+    setConfirmDialogOpen(false);
+    
+    try {
+      await authService.deleteAddress(addressToDelete);
+      setSuccess("Address deleted successfully!");
+      await fetchUserProfile(); // Refresh addresses
+    } catch (err) {
+      console.error("Error deleting address:", err);
+      
+      // Check if error is due to address being associated with orders
+      if (err.response?.data?.error === "Cannot delete this address because it is associated with existing orders") {
+        setError(err.response.data.message || "This address cannot be deleted because it's associated with existing orders.");
+      } else {
+        setError(err.response?.data?.message || "Failed to delete address. Please try again.");
+      }
+    } finally {
+      setAddressLoading(false);
+      setAddressToDelete(null);
+    }
+  }
+
+  const handleSetDefaultAddress = async (addressId) => {
+    setAddressLoading(true);
+    try {
+      await authService.setDefaultAddress(addressId);
+      setSuccess("Default address updated successfully!");
+      await fetchUserProfile(); // Refresh addresses
+    } catch (err) {
+      console.error("Error setting default address:", err);
+      setError(err.response?.data?.message || "Failed to set default address. Please try again.");
+    } finally {
+      setAddressLoading(false);
+    }
+  }
+
   const handleAddNewAddress = () => {
-    setShowAddressForm(true)
+    setAddressFormData({
+      fullName: "",
+      phone: "",
+      address: "",
+      city: "",
+      state: "",
+      zipCode: "",
+      country: ""
+    });
+    setCurrentAddressId(null);
+    setIsEditingAddress(false);
+    setShowAddressForm(true);
   }
 
   return (
@@ -392,6 +514,15 @@ function PersonalInfoForm({ user, isEditing, onUpdate, onCancel, formData, onCha
       {success && (
         <div className="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">{success}</div>
       )}
+
+      {/* Confirmation Dialog */}
+      <ConfirmationDialog 
+        isOpen={confirmDialogOpen}
+        title="Delete Address"
+        message="Are you sure you want to delete this address? This action cannot be undone."
+        onConfirm={handleDeleteAddress}
+        onCancel={() => setConfirmDialogOpen(false)}
+      />
 
       {/* Profile Form */}
       <form onSubmit={handleProfileSubmit} className="space-y-6">
@@ -494,21 +625,27 @@ function PersonalInfoForm({ user, isEditing, onUpdate, onCancel, formData, onCha
                 <div className="mt-3 flex space-x-2">
                   <button 
                     type="button"
+                    onClick={() => handleEditAddress(address)}
                     className="text-xs text-gray-600 hover:text-gray-900"
+                    disabled={addressLoading}
                   >
                     Edit
                   </button>
                   <span className="text-gray-300">|</span>
                   <button 
                     type="button"
+                    onClick={() => handleSetDefaultAddress(address.id)}
                     className="text-xs text-gray-600 hover:text-gray-900"
+                    disabled={addressLoading || address.isDefault}
                   >
-                    Set as Default
+                    {address.isDefault ? "Default" : "Set as Default"}
                   </button>
                   <span className="text-gray-300">|</span>
                   <button 
                     type="button"
+                    onClick={() => confirmDeleteAddress(address.id)}
                     className="text-xs text-gray-600 hover:text-red-600"
+                    disabled={addressLoading}
                   >
                     Delete
                   </button>
@@ -521,6 +658,7 @@ function PersonalInfoForm({ user, isEditing, onUpdate, onCancel, formData, onCha
                 type="button"
                 onClick={handleAddNewAddress}
                 className="border border-dashed border-gray-300 rounded-lg p-4 text-center hover:bg-gray-50 transition-colors"
+                disabled={addressLoading}
               >
                 <div className="flex flex-col items-center justify-center h-full">
                   <svg
@@ -550,6 +688,7 @@ function PersonalInfoForm({ user, isEditing, onUpdate, onCancel, formData, onCha
               type="button"
               onClick={handleAddNewAddress}
               className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+              disabled={addressLoading}
             >
               Add New Address
             </button>
@@ -557,23 +696,35 @@ function PersonalInfoForm({ user, isEditing, onUpdate, onCancel, formData, onCha
         )}
       </div>
 
-      {/* New Address Form */}
-      {(showAddressForm || (!user.addresses || user.addresses.length === 0)) && (
+      {/* New/Edit Address Form */}
+      {showAddressForm && (
         <form onSubmit={handleAddressSubmit} className="pt-4 border-t border-gray-200">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-md font-medium text-gray-900 flex items-center">
               <MapPin className="h-4 w-4 mr-1" />
-              {user.addresses && user.addresses.length > 0 ? 'Add New Address' : 'Address Information'}
+              {isEditingAddress ? 'Edit Address' : 'Add New Address'}
             </h3>
-            {user.addresses && user.addresses.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setShowAddressForm(false)}
-                className="text-sm text-gray-500 hover:text-gray-700"
-              >
-                Cancel
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => {
+                setShowAddressForm(false);
+                setIsEditingAddress(false);
+                setCurrentAddressId(null);
+                setAddressFormData({
+                  fullName: "",
+                  phone: "",
+                  address: "",
+                  city: "",
+                  state: "",
+                  zipCode: "",
+                  country: ""
+                });
+              }}
+              className="text-sm text-gray-500 hover:text-gray-700"
+              disabled={addressLoading}
+            >
+              Cancel
+            </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -665,10 +816,10 @@ function PersonalInfoForm({ user, isEditing, onUpdate, onCancel, formData, onCha
           <div className="flex justify-end pt-6">
             <button
               type="submit"
-              disabled={loading}
+              disabled={addressLoading}
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50"
             >
-              {loading ? "Saving..." : "Save Address"}
+              {addressLoading ? "Saving..." : isEditingAddress ? "Update Address" : "Save Address"}
             </button>
           </div>
         </form>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import orderService from '../services/orderService';
+import orderService from '../../services/orderService';
 import { format } from 'date-fns';
 
 const Orders = () => {
@@ -84,7 +84,7 @@ const Orders = () => {
             <div className="px-6 py-4 border-b">
               <div className="flex justify-between items-center">
                 <div>
-                  <p className="text-sm text-gray-500">Order #{order.id}</p>
+                  <p className="text-sm text-gray-500">OrderID:  #{order.id}</p>
                   <p className="text-sm text-gray-500">
                     Placed on {format(new Date(order.createdAt), 'MMM d, yyyy')}
                   </p>
@@ -100,7 +100,7 @@ const Orders = () => {
                 {order.items.map((item) => (
                   <div key={item.id} className="flex items-center space-x-4">
                     <img
-                      src={item.product.image || '/placeholder.svg'}
+                      src={item.product.image ? `${import.meta.env.VITE_API_URL}/uploads/${item.product.image[0]}` : '/placeholder.svg'}
                       alt={item.product.name}
                       className="w-16 h-16 object-cover rounded"
                     />
@@ -108,7 +108,7 @@ const Orders = () => {
                       <h3 className="text-sm font-medium text-gray-900">{item.product.name}</h3>
                       <p className="text-sm text-gray-500">Quantity: {item.quantity}</p>
                       <p className="text-sm font-medium text-gray-900">
-                        ${(item.price * item.quantity).toFixed(2)}
+                      ₹{(item.price * item.quantity).toFixed(2)}
                       </p>
                     </div>
                   </div>
@@ -118,16 +118,18 @@ const Orders = () => {
 
             <div className="px-6 py-4 bg-gray-50">
               <div className="flex justify-between items-center">
-                <div>
+              <div>
                   <p className="text-sm text-gray-500">Shipping Address</p>
                   <p className="text-sm font-medium text-gray-900">
-                    {order.shippingAddress.street}
+                    {order.address.fullName}
                     <br />
-                    {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zipCode}
+                    {order.address.address}
                     <br />
-                    {order.shippingAddress.country}
+                    {order.address.city}, {order.address.state} {order.address.zipCode}
+                    <br />
+                    {order.address.country}
                   </p>
-                </div>
+                </div> 
                 <div className="text-right">
                   <p className="text-sm text-gray-500">Total Amount</p>
                   <p className="text-lg font-medium text-gray-900">${order.total.toFixed(2)}</p>

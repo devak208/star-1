@@ -23,7 +23,7 @@ const authService = {
       
       console.log('Sending login data:', { ...loginData, password: '****' });
       
-      const response = await instance.post('/auth/signin', loginData);
+      const response = await instance.post('/auth/login', loginData);
       
       if (response.data.user) {
         localStorage.setItem('user', JSON.stringify(response.data.user));
@@ -55,7 +55,7 @@ const authService = {
   // Logout user
   logout: async () => {
     try {
-      await instance.post('/auth/signout');
+      await instance.post('/auth/logout');
     } catch (error) {
       console.error('Logout error:', error);
     } finally {

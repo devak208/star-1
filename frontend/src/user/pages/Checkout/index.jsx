@@ -6,7 +6,7 @@ import { useUser } from '../../../context/UserContext';
 import orderService from '../services/orderService';
 import axios from '../services/axios';
 import { toast } from "react-hot-toast"
-import { CreditCard, Package, Truck, Shield } from "lucide-react"
+/* import { CreditCard, Package, Truck, Shield } from "lucide-react" */
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -16,11 +16,11 @@ const Checkout = () => {
   const [error, setError] = useState(null);
   const [formData, setFormData] = useState({
     shippingAddress: {
-      street: user?.address?.street || "",
-      city: user?.address?.city || "",
-      state: user?.address?.state || "",
-      zipCode: user?.address?.zipCode || "",
-      country: user?.address?.country || ""
+      street:  "",
+      city: "",
+      state:  "",
+      zipCode: "",
+      country:  ""
     },
     paymentMethod: "card",
     cardDetails: {

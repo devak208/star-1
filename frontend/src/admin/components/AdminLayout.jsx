@@ -223,7 +223,7 @@ export default function AdminLayout({ children }) {
                 />
               </svg>
             </button>
-            <div className="flex items-center">
+            {/*<div className="flex items-center">
               <div className="relative">
                 <button className="flex items-center text-gray-500 hover:text-gray-700 focus:outline-none">
                   <span className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-700">
@@ -242,10 +242,10 @@ export default function AdminLayout({ children }) {
                       />
                     </svg>
                   </span>
-                  <span className="ml-2 text-sm font-medium">Admin</span>
+                  <span className="ml-2 text-sm font-medium">Admien</span>
                 </button>
               </div>
-            </div>
+            </div>*/}
           </header>
 
           {/* Main content area */}
