@@ -1,9 +1,7 @@
 import { Router } from 'express';
-import { authenticateUser, AuthRequest } from '../../middleware/AuthMiddleware/authMiddleware';
-import { prisma } from '../../config/db';
+import { authenticateUser } from '../../middleware/AuthMiddleware/authMiddleware';
 import { changePassword, updateAddress, updateUserProfile } from '../../controllers/AuthControllers/authController';
 import { getUserProfile } from '../../controllers/AuthControllers/userController';
-import { Response } from 'express';
 
 const router = Router();
 

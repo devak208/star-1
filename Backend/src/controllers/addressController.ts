@@ -139,6 +139,19 @@ class AddressController {
         return;
       }
 
+      // Check if the address is being used in any orders
+      const ordersUsingAddress = await prisma.order.findFirst({
+        where: { addressId: id }
+      });
+
+      if (ordersUsingAddress) {
+        res.status(400).json({ 
+          error: 'Cannot delete this address because it is associated with existing orders',
+          message: 'This address is being used for orders and cannot be deleted. You can create a new address instead.'
+        });
+        return;
+      }
+
       await prisma.address.delete({
         where: { id }
       });

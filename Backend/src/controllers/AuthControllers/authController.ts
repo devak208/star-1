@@ -372,13 +372,40 @@ export const updateAddress = async (req: Request, res: Response) => {
     const userId = (req as any).user.id;
     const addressData = req.body;
     
-    // You'll need to add an address field to your User model in Prisma schema
-    // For now, we'll store it as JSON
-    const updatedUser = await prisma.user.update({
-      where: { id: userId },
+    // Check if the user has an existing default address
+    if (addressData.isDefault) {
+      // If this address is being set as default, update existing default addresses to non-default
+      await prisma.address.updateMany({
+        where: {
+          userId: userId,
+          isDefault: true
+        },
+        data: {
+          isDefault: false
+        }
+      });
+    }
+    
+    // Create a new address for the user
+    const newAddress = await prisma.address.create({
       data: {
-        addresses: addressData,
-      },
+        fullName: addressData.fullName,
+        phone: addressData.phone,
+        address: addressData.address,
+        city: addressData.city,
+        state: addressData.state,
+        zipCode: addressData.zipCode,
+        country: addressData.country,
+        isDefault: addressData.isDefault || false,
+        user: {
+          connect: { id: userId }
+        }
+      }
+    });
+    
+    // Get updated user with addresses
+    const updatedUser = await prisma.user.findUnique({
+      where: { id: userId },
       select: {
         id: true,
         name: true,
@@ -391,9 +418,45 @@ export const updateAddress = async (req: Request, res: Response) => {
       },
     });
     
-    res.json(updatedUser);
+    // Transform the response to match the expected format
+    const response = {
+      ...updatedUser,
+      phone: updatedUser?.phoneNumber
+    };
+    
+    // Remove phoneNumber from response if we added phone
+    if (response.phoneNumber) {
+      delete response.phoneNumber;
+    }
+    
+    res.json(response);
   } catch (error) {
     console.error("Error updating address:", error);
     res.status(500).json({ error: "Failed to update address" });
+  }
+};
+
+// Logout user
+export const logoutUser = async (req: Request, res: Response) => {
+  try {
+    // Clear authentication cookies
+    res.clearCookie("accessToken", {
+      httpOnly: true, 
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: "lax",
+      path: "/"
+    });
+    
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: "lax",
+      path: "/"
+    });
+    
+    return res.status(200).json({ message: "Logged out successfully" });
+  } catch (error) {
+    console.error("Logout Error:", error);
+    return res.status(500).json({ error: "Something went wrong during logout" });
   }
 };
