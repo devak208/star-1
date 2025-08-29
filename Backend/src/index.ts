@@ -41,7 +41,7 @@ app.use((req, res, next) => {
 
 // Set up CORS options to allow requests from your frontend URL
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://192.168.147.81:5173',
+  origin: process.env.FRONTEND_URL || 'http://10.81.255.156:5173',
   credentials: true,
   methods: ["GET,HEAD,PUT,PATCH,POST,DELETE"],
   optionsSuccessStatus: 204,

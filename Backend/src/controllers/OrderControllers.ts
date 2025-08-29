@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../config/db';
 import { AuthRequest } from '../middleware/AuthMiddleware/authMiddleware';
-import redis from "../config/redis";
 
 // Admin: Get all orders
 export const getAllOrders = async (req: AuthRequest, res: Response) => {
@@ -172,11 +171,7 @@ export const updateOrderStatus = async (req: AuthRequest, res: Response) => {
           );
 
           // Invalidate product cache for updated products
-          await Promise.all(
-            currentOrder.items.map(item => 
-              redis.del(`product_${item.productId}`)
-            )
-          );
+          // Cache removal skipped (Redis removed)
         }
 
         return tx.order.update({
@@ -319,15 +314,7 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
       });
 
       // After successful transaction, handle cache invalidation
-      try {
-        await Promise.all([
-          ...items.map(item => redis.del(`product_${item.productId}`)),
-          redis.del('all_products')
-        ]);
-      } catch (cacheError) {
-        // Log cache error but don't fail the request
-        console.warn('Cache invalidation error:', cacheError);
-      }
+  // Cache invalidation skipped (Redis removed)
 
     } catch (transactionError) {
       console.error('Transaction error:', transactionError);
@@ -505,7 +492,7 @@ export const cancelOrder = async (req: AuthRequest, res: Response) => {
       });
       
       // Invalidate cache for this product
-      await redis.del(`product_${item.productId}`);
+  // Cache invalidation skipped (Redis removed)
     }
 
     return res.status(200).json({

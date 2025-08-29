@@ -5,7 +5,7 @@ import { PrismaClient } from "@prisma/client"
 import type { FileRequest, ProductCreateInput, ProductUpdateInput } from "../types/index.js"
 
 // Get all products
-import redis from "../config/redis";
+// Redis caching removed
 
 const prisma = new PrismaClient()
 
@@ -47,18 +47,13 @@ export const getAllProducts = async (req: Request, res: Response) => {
 export const getProductsByCategory = async (req: Request, res: Response) => {
   const categoryId = req.params.categoryId;
   try {
-    const cacheKey = `category_${categoryId}`;
-
-    const cachedProducts = await redis.get(cacheKey);
-    if (cachedProducts) {
-      return res.json(JSON.parse(cachedProducts)); // Serve from cache
-    }
+  // Caching removed
 
     const products = await prisma.product.findMany({
       where: { categoryId: Number.parseInt(categoryId) },
     });
 
-    await redis.set(cacheKey, JSON.stringify(products), "EX", 3600); // Cache for 1 hour
+  // Caching removed
 
     res.json(products);
   } catch (error) {
@@ -74,9 +69,7 @@ export const getProductsByCategory = async (req: Request, res: Response) => {
 export const getProductById = async (req: Request, res: Response) => {
   const productId = req.params.id;
   try {
-    const cacheKey = `product_${productId}`;
-
-    // Always get fresh data for stock-sensitive operations
+  // Always get fresh data
     const product = await prisma.product.findUnique({
       where: { id: Number.parseInt(productId) },
     });
@@ -85,8 +78,7 @@ export const getProductById = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    // Update cache with fresh data
-    await redis.set(cacheKey, JSON.stringify(product), "EX", 60); // Cache for 1 minute only
+  // Caching removed
 
     res.json(product);
   } catch (error) {
@@ -105,7 +97,7 @@ export const createProduct = async (req: FileRequest, res: Response) => {
 
   // Extract data from form fields
   let { name, price, description, stock, categoryId, weight, qty } = req.body as unknown as ProductCreateInput
-  await redis.del("all_products"); // Clear all products cache
+  // Cache invalidation removed
 
   // Clean up string values if needed
   if (name && typeof name === "string") name = name.replace(/^"|"$/g, "")
@@ -154,9 +146,7 @@ export const updateProduct = async (req: FileRequest, res: Response) => {
 
   let { name, price, description, stock, categoryId, weight, qty, imagesToRemove } =
     req.body as unknown as ProductUpdateInput
-    await redis.del("all_products");
-await redis.del(`product_${req.params.id}`);
-await redis.del(`category_${req.body.categoryId}`);
+  // Cache invalidation removed
 
 
   // Clean up string values if needed
@@ -259,9 +249,7 @@ export const deleteProduct = async (req: Request, res: Response) => {
     const product = await prisma.product.findUnique({
       where: { id: Number.parseInt(req.params.id) },
     })
-    await redis.del("all_products");
-await redis.del(`product_${req.params.id}`);
-await redis.del(`category_${product.categoryId}`);
+  // Cache invalidation removed
 
 
     if (!product) {
