@@ -1,5 +1,0 @@
-# Docker setup removed. Run the app directly with:
-# 1. npm install
-# 2. npx prisma generate && npx prisma migrate deploy (or dev)
-# 3. npm run build
-# 4. node dist/index.js
